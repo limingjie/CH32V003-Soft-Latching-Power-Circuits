@@ -1,0 +1,10 @@
+# RISC-V Toolchain
+*.asm
+*.bin
+*.elf
+*.hex
+*.lst
+*.map
+
+# macOS
+.DS_Store
