@@ -1,4 +1,4 @@
-# CH32V003 Software Latching
+# CH32V003 Soft Latching
 
 ## Schematic
 
@@ -12,5 +12,5 @@
 
 ## References
 
-- [CNLohr: ch32v003fun](https://github.com/cnlohr/ch32v003fun)
 - [Andrew Levido: Soft Latching Power Circuits](https://circuitcellar.com/resources/quickbits/soft-latching-power-circuits/)
+- [CNLohr: ch32v003fun](https://github.com/cnlohr/ch32v003fun)
