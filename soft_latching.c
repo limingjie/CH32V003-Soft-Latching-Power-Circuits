@@ -2,8 +2,8 @@
  * CH32V003J4M6 (SOP-8) Soft Latching
  *
  * Reference:
- *  - https://github.com/cnlohr/ch32v003fun
  *  - https://circuitcellar.com/resources/quickbits/soft-latching-power-circuits/
+ *  - https://github.com/cnlohr/ch32v003fun
  *
  * Aug 2023 by Li Mingjie
  *  - Email:  limingjie@outlook.com
