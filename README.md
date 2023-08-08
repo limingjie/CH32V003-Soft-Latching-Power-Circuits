@@ -2,13 +2,7 @@
 
 ## Schematic
 
-- GPIO `PA1` connects to the gate of `Q2`.
-- GPIO `PC1` connects to an LED as an indicator.
-- No LDO.
-
-(TODO: the actual schematic)
-
-![Schematic](images/Soft_Latching_Schematic.webp)
+![Alt text](schematic/CH32V003_Soft_Latching/CH32V003_Soft_Latching.png)
 
 ## References
 

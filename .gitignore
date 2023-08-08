@@ -8,3 +8,8 @@
 
 # macOS
 .DS_Store
+
+# KiCad
+schematic/*/*-backups
+schematic/*/fp-info-cache
+schematic/*/sym-lib-table
