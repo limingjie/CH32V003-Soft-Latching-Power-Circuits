@@ -20,3 +20,5 @@ However, the first time I tried the circuit was using a CH552, it never works st
 
 - [Andrew Levido: Soft Latching Power Circuits](https://circuitcellar.com/resources/quickbits/soft-latching-power-circuits/)
 - [CNLohr: ch32v003fun](https://github.com/cnlohr/ch32v003fun)
+- [A Guide to Debouncing](https://my.eng.utah.edu/~cs5780/debouncing.pdf)
+- [The simplest button debounce solution](https://www.e-tinkers.com/2021/05/the-simplest-button-debounce-solution/)
