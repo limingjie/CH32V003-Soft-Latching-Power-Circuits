@@ -1,11 +1,11 @@
 /*
- * CH32V003J4M6 (SOP-8) Soft Latching
+ * CH32V003 Soft Latching
  *
  * Reference:
  *  - https://circuitcellar.com/resources/quickbits/soft-latching-power-circuits/
  *  - https://github.com/cnlohr/ch32v003fun
  *
- * Aug 2023 by Li Mingjie
+ * Apr 2025 by Li Mingjie
  *  - Email:  limingjie@outlook.com
  *  - GitHub: https://github.com/limingjie/
  */
@@ -59,23 +59,6 @@ int main()
 
     systick_init();
 
-#define STATE_WAIT_FOR_KEY_PRESS   0
-#define STATE_KEY_PRESS_DEBOUNCE   1
-#define STATE_WAIT_FOR_KEY_RELEASE 2
-#define STATE_KEY_RELEASE_DEBOUNCE 3
-#define DEBOUNCE_INTERVAL          5  // 5ms
-#define DEBOUNCE_STABLE_CYCLES     2  // 5ms x 2 = 10ms
-#define KEY_OFF                    0
-#define KEY_ON                     1
-
-    uint8_t key_debounce_state = STATE_WAIT_FOR_KEY_PRESS;
-    uint8_t key_last_status    = KEY_OFF;
-    uint8_t key_cycle_count    = 0;
-    // uint8_t key_pressed        = 0;
-    uint8_t key_released = 0;
-
-    uint8_t led_state = 0;
-
     // If the key is holding after power on, wait until it is released.
     // TODO: There should be a more elegant way...
     if (funDigitalRead(button_pin) == FUN_LOW)
@@ -84,13 +67,13 @@ int main()
         {
             if (funDigitalRead(button_pin) == FUN_HIGH)
             {
-                Delay_Ms(DEBOUNCE_INTERVAL);
+                Delay_Ms(5);
                 if (funDigitalRead(button_pin) == FUN_HIGH)
                 {
                     break;
                 }
             }
-            Delay_Ms(DEBOUNCE_INTERVAL);
+            Delay_Ms(5);
         }
     }
 
@@ -104,84 +87,123 @@ int main()
     //  +----------------------------+         +----------------------------+
     //  | STATE_KEY_RELEASE_DEBOUNCE | <-----> | STATE_WAIT_FOR_KEY_RELEASE |
     //  +----------------------------+         +----------------------------+
+
+    enum debounce_states
+    {
+        STATE_WAIT_FOR_KEY_PRESS,
+        STATE_KEY_PRESS_DEBOUNCE,
+        STATE_WAIT_FOR_KEY_RELEASE,
+        STATE_KEY_RELEASE_DEBOUNCE
+    };
+
+    enum key_states
+    {
+        KEY_UP,
+        KEY_DOWN
+    };
+
+    enum key_events
+    {
+        KEY_NONE,
+        KEY_PRESS,
+        KEY_RELEASE,
+        KEY_LONG_PRESS_RELEASE
+    };
+
+#define DEBOUNCE_INTERVAL      5    // 5ms
+#define DEBOUNCE_STABLE_CYCLES 5    // 5ms x 5 = 25ms
+#define LONG_PRESS_CYCLES      100  // 5ms x 100 = 500ms
+
+    uint8_t  debounce_state           = STATE_WAIT_FOR_KEY_PRESS;
+    uint8_t  key_event                = KEY_NONE;
+    uint8_t  key_long_press           = 0;
+    uint16_t key_cycle_count          = 0;
+    uint16_t key_debounce_cycle_count = 0;
+
     while (1)
     {
-        switch (key_debounce_state)
+        uint8_t key_state = (funDigitalRead(button_pin) == FUN_LOW) ? KEY_DOWN : KEY_UP;
+        switch (debounce_state)
         {
             case STATE_WAIT_FOR_KEY_PRESS:
-                if (funDigitalRead(button_pin) == FUN_LOW)  // pressed
+                if (key_state == KEY_DOWN)  // pressed
                 {
-                    key_last_status    = KEY_ON;
-                    key_cycle_count    = 0;
-                    key_debounce_state = STATE_KEY_PRESS_DEBOUNCE;
-                    // printf("STATE_KEY_PRESS_DEBOUNCE\n");
+                    key_debounce_cycle_count = 0;
+                    debounce_state           = STATE_KEY_PRESS_DEBOUNCE;
+                    printf("STATE_KEY_PRESS_DEBOUNCE\n");
                 }
                 break;
             case STATE_KEY_PRESS_DEBOUNCE:
-                ++key_cycle_count;
-                if (key_last_status == KEY_ON && funDigitalRead(button_pin) == FUN_LOW)  // still pressed
+                ++key_debounce_cycle_count;
+                if (key_state == KEY_DOWN)  // still pressed
                 {
-                    if (key_cycle_count >= DEBOUNCE_STABLE_CYCLES)
+                    if (key_debounce_cycle_count >= DEBOUNCE_STABLE_CYCLES)
                     {
-                        // key_pressed        = 1;
-                        key_debounce_state = STATE_WAIT_FOR_KEY_RELEASE;
-                        // printf("STATE_WAIT_FOR_KEY_RELEASE\n");
+                        key_event       = KEY_PRESS;
+                        key_cycle_count = 0;
+                        key_long_press  = 0;
+                        debounce_state  = STATE_WAIT_FOR_KEY_RELEASE;
+                        printf("STATE_WAIT_FOR_KEY_RELEASE\n");
                     }
                 }
                 else
                 {
-                    key_debounce_state = STATE_WAIT_FOR_KEY_PRESS;
-                    // printf("STATE_WAIT_FOR_KEY_PRESS\n");
+                    debounce_state = STATE_WAIT_FOR_KEY_PRESS;
+                    printf("STATE_WAIT_FOR_KEY_PRESS\n");
                 }
                 break;
             case STATE_WAIT_FOR_KEY_RELEASE:
-                if (funDigitalRead(button_pin) == FUN_HIGH)  // released
+                ++key_cycle_count;
+                if (key_state == KEY_UP)  // released
                 {
-                    key_last_status    = KEY_OFF;
-                    key_cycle_count    = 0;
-                    key_debounce_state = STATE_KEY_RELEASE_DEBOUNCE;
-                    // printf("STATE_KEY_RELEASE_DEBOUNCE\n");
+                    if (key_cycle_count >= LONG_PRESS_CYCLES)
+                    {
+                        key_long_press = 1;
+                        printf("Long Press!!! cycle = %d\n", key_cycle_count);
+                    }
+                    key_debounce_cycle_count = 0;
+                    debounce_state           = STATE_KEY_RELEASE_DEBOUNCE;
+                    printf("STATE_KEY_RELEASE_DEBOUNCE\n");
                 }
                 break;
             case STATE_KEY_RELEASE_DEBOUNCE:
-                ++key_cycle_count;
-                if (key_last_status == KEY_OFF && funDigitalRead(button_pin) == FUN_HIGH)  // still pressed
+                ++key_debounce_cycle_count;
+                if (key_state == KEY_UP)  // still released
                 {
-                    if (key_cycle_count >= DEBOUNCE_STABLE_CYCLES)
+                    if (key_debounce_cycle_count >= DEBOUNCE_STABLE_CYCLES)
                     {
-                        key_released       = 1;
-                        key_debounce_state = STATE_WAIT_FOR_KEY_PRESS;
-                        // printf("STATE_WAIT_FOR_KEY_PRESS\n");
+                        key_event      = key_long_press ? KEY_LONG_PRESS_RELEASE : KEY_RELEASE;
+                        debounce_state = STATE_WAIT_FOR_KEY_PRESS;
+                        printf("STATE_WAIT_FOR_KEY_PRESS\n");
                     }
                 }
                 else
                 {
-                    key_debounce_state = STATE_WAIT_FOR_KEY_RELEASE;
-                    // printf("STATE_WAIT_FOR_KEY_RELEASE\n");
+                    debounce_state = STATE_WAIT_FOR_KEY_RELEASE;
+                    printf("STATE_WAIT_FOR_KEY_RELEASE\n");
                 }
                 break;
         }
 
-        // if (key_pressed)
+        // if (key_state)
         // {
         //     disable_systick();
         //     funDigitalWrite(blink_pin, FUN_LOW);
         // }
 
-        if (key_released)
+        if (key_event == KEY_LONG_PRESS_RELEASE)
         {
-            led_state++;
+            key_event = KEY_NONE;
+            funDigitalWrite(button_pin, FUN_LOW);  // Input pull-down
+            // disable_systick();
+            // funDigitalWrite(blink_pin, FUN_HIGH);
+        }
+        else if (key_event == KEY_RELEASE)
+        {
+            key_event   = KEY_NONE;
             blink_delay = (blink_delay == 500) ? 100 : 500;
-            // printf("Key Released. LED status = %d, blink_delay = %d\n", led_state, blink_delay);
-            if (led_state > 8)
-            {
-                funDigitalWrite(button_pin, FUN_LOW);  // Input pull-down
-            }
-            else
-            {
-                systick_init();  // Re-initiate systick, change LED blink interval.
-            }
-            key_released = 0;
+            printf("Key Released. blink_delay = %ld\n", blink_delay);
+            systick_init();  // Re-initiate systick, change LED blink interval.
         }
 
         Delay_Ms(DEBOUNCE_INTERVAL);
